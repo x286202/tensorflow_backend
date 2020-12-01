@@ -26,6 +26,7 @@
 
 #include "tensorflow_backend_tf.h"
 #include "tensorflow_utils.h"
+#include <nvtx3/nvToolsExt.h>
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_input_collector.h"
 #include "triton/backend/backend_model.h"
@@ -1381,6 +1382,14 @@ void
 ModelInstanceState::ProcessRequests(
     TRITONBACKEND_Request** requests, const uint32_t request_count)
 {
+  nvtxEventAttributes_t eventAttrib1;
+eventAttrib1.version = NVTX_VERSION;
+eventAttrib1.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+eventAttrib1.colorType = NVTX_COLOR_ARGB;
+eventAttrib1.color = 0xFF0088FF;
+eventAttrib1.messageType = NVTX_MESSAGE_TYPE_ASCII;
+eventAttrib1.message.ascii = "ProcessRequest";
+nvtxRangeId_t id1 = nvtxRangeStartEx(&eventAttrib1);
   LOG_MESSAGE(
       TRITONSERVER_LOG_VERBOSE,
       (std::string("TRITONBACKEND_ModelExecute: Running ") + Name() + " with " +
@@ -1681,9 +1690,19 @@ ModelInstanceState::ProcessRequests(
   {
     TRTISTF_TensorList* rtl = nullptr;
 
-    TRTISTF_Error* tf_err = TRTISTF_ModelRun(
+    TRTISTF_Error* tf_err = nullptr;
+    nvtxEventAttributes_t eventAttrib;
+eventAttrib.version = NVTX_VERSION;
+eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+eventAttrib.colorType = NVTX_COLOR_ARGB;
+eventAttrib.color = 0xFF000000;
+eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
+eventAttrib.message.ascii = "ModelRun";
+nvtxRangeId_t id2 = nvtxRangeStartEx(&eventAttrib);
+    tf_err = TRTISTF_ModelRun(
         trtistf_model_.get(), *(input_tensors.release()),
         required_outputs.size(), output_names_cstr, &rtl);
+nvtxRangeEnd(id2);
     if (tf_err != nullptr) {
       auto err =
           TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_INTERNAL, tf_err->msg_);
@@ -1854,6 +1873,7 @@ ModelInstanceState::ProcessRequests(
       (std::string("TRITONBACKEND_ModelExecute: model ") + Name() +
        " released " + std::to_string(request_count) + " requests")
           .c_str());
+  nvtxRangeEnd(id1);
 }
 
 /////////////

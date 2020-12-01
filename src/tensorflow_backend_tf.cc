@@ -1125,5 +1125,15 @@ TRTISTF_ModelRun(
     output_tensor_names.emplace_back(output_names[i]);
   }
 
-  return m->Run(input_tensors, output_tensor_names, output_tensors);
+  nvtxEventAttributes_t eventAttrib1;
+  eventAttrib1.version = NVTX_VERSION;
+  eventAttrib1.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+  eventAttrib1.colorType = NVTX_COLOR_ARGB;
+  eventAttrib1.color = 0xFF008800;
+  eventAttrib1.messageType = NVTX_MESSAGE_TYPE_ASCII;
+  eventAttrib1.message.ascii = "Run";
+  nvtxRangeId_t id1 = nvtxRangeStartEx(&eventAttrib1);
+  TRTISTF_Error* err = m->Run(input_tensors, output_tensor_names, output_tensors);
+  nvtxRangeEnd(id1);
+  return  err;
 }
